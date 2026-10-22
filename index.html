@@ -18,12 +18,17 @@
                 <h1 class="text-xl font-bold tracking-wider">四季豐果菜 <span class="text-xs bg-emerald-600 px-2 py-0.5 rounded text-emerald-100">餐廳專用下單</span></h1>
             </div>
             <!-- 模式切換按鈕 -->
-            <div class="flex bg-emerald-800 p-1 rounded-lg">
-                <button onclick="switchMode('customer')" id="btn-customer" class="px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow">
-                    <i class="fa-solid fa-store mr-1"></i> 餐廳客戶端
-                </button>
-                <button onclick="switchMode('admin')" id="btn-admin" class="px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white">
-                    <i class="fa-solid fa-lock mr-1"></i> 管理員模式
+            <div class="flex items-center space-x-2">
+                <div class="flex bg-emerald-800 p-1 rounded-lg">
+                    <button onclick="switchMode('customer')" id="btn-customer" class="px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow">
+                        <i class="fa-solid fa-store mr-1"></i> 餐廳客戶端
+                    </button>
+                    <button onclick="switchMode('admin')" id="btn-admin" class="px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white">
+                        <i class="fa-solid fa-lock mr-1"></i> 管理員模式
+                    </button>
+                </div>
+                <button id="btn-logout" onclick="adminLogout()" class="hidden text-xs bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg font-medium text-white transition">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> 登出
                 </button>
             </div>
         </div>
@@ -39,7 +44,7 @@
                     <i class="fa-solid fa-bullhorn text-amber-600 text-xl"></i>
                     <div>
                         <p class="text-sm font-bold text-amber-800">四季豐果菜 - 今日市場時價已更新！</p>
-                        <p class="text-xs text-amber-700">每日凌晨同步最新蔬果行情，支援整件、斤兩、包等多樣化規格下單。</p>
+                        <p class="text-xs text-amber-700">每日凌晨同步最新蔬果行情，支援整件、斤兩、包等多樣化規格下單（數量支援 0.5 起叫貨）。</p>
                     </div>
                 </div>
                 <button onclick="copyDailyQuote()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-2 rounded-lg font-medium transition shadow flex items-center space-x-1">
@@ -161,6 +166,33 @@
 
     </main>
 
+    <!-- 管理員登入彈窗 -->
+    <div id="login-modal" class="fixed inset-0 bg-black/60 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 shadow-xl">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-2 text-xl">
+                    <i class="fa-solid fa-user-shield"></i>
+                </div>
+                <h3 class="font-bold text-lg text-slate-800">管理員身份驗證</h3>
+                <p class="text-xs text-slate-500 mt-1">請輸入果菜行管理員帳號與密碼</p>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">管理員帳號</label>
+                    <input type="text" id="admin-username" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="預設：admin">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">管理員密碼</label>
+                    <input type="password" id="admin-password" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="預設：1234">
+                </div>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="closeLoginModal()" class="w-1/2 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="adminLogin()" class="w-1/2 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow font-semibold">登入後台</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 新增 / 編輯彈窗 -->
     <div id="product-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
@@ -183,7 +215,6 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">計價單位</label>
-                        <!-- 改為下拉選單：支援整件/整捆、台斤、包 -->
                         <select id="input-unit" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none">
                             <option value="台斤">台斤 (斤兩)</option>
                             <option value="整件">整件 (箱裝)</option>
@@ -207,7 +238,7 @@
 
     <!-- JavaScript 邏輯控制 -->
     <script>
-        // 預設蔬果資料庫 (包含不同單位範例)
+        // 預設蔬果資料庫
         const defaultProducts = [
             { id: 1, name: "高麗菜 (初秋)", category: "葉菜類", unit: "整件", price: 650, status: "active" },
             { id: 2, name: "台灣翠玉白菜", category: "葉菜類", unit: "台斤", price: 28, status: "active" },
@@ -222,6 +253,7 @@
         let products = JSON.parse(localStorage.getItem('four_seasons_veg_products')) || defaultProducts;
         let cart = {};
         let currentFilter = 'all';
+        let isAdminLoggedIn = false;
 
         // 初始化日期預設為明天
         document.addEventListener('DOMContentLoaded', () => {
@@ -232,26 +264,64 @@
             renderAdminTable();
         });
 
-        // 切換介面模式
+        // 模式切換 (含登入驗證)
         function switchMode(mode) {
             const custView = document.getElementById('view-customer');
             const adminView = document.getElementById('view-admin');
             const btnCust = document.getElementById('btn-customer');
-            const isAdmin = document.getElementById('btn-admin');
+            const btnAdmin = document.getElementById('btn-admin');
+            const btnLogout = document.getElementById('btn-logout');
 
             if (mode === 'customer') {
                 custView.classList.remove('hidden');
                 adminView.classList.add('hidden');
                 btnCust.className = "px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow";
-                isAdmin.className = "px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white";
+                btnAdmin.className = "px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white";
+                btnLogout.classList.add('hidden');
                 renderCustomerProducts();
             } else {
+                if (!isAdminLoggedIn) {
+                    openLoginModal();
+                    return;
+                }
                 custView.classList.add('hidden');
                 adminView.classList.remove('hidden');
-                isAdmin.className = "px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow";
+                btnAdmin.className = "px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow";
                 btnCust.className = "px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white";
+                btnLogout.classList.remove('hidden');
                 renderAdminTable();
             }
+        }
+
+        // 管理員登入/登出邏輯
+        function openLoginModal() {
+            document.getElementById('admin-username').value = '';
+            document.getElementById('admin-password').value = '';
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden');
+        }
+
+        function adminLogin() {
+            const user = document.getElementById('admin-username').value.trim();
+            const pass = document.getElementById('admin-password').value.trim();
+
+            if (user === 'admin' && pass === '1234') {
+                isAdminLoggedIn = true;
+                closeLoginModal();
+                switchMode('admin');
+                alert("登入成功！歡迎使用四季豐果菜管理後台。");
+            } else {
+                alert("帳號或密碼錯誤！（預設帳號：admin / 密碼：1234）");
+            }
+        }
+
+        function adminLogout() {
+            isAdminLoggedIn = false;
+            switchMode('customer');
+            alert("已安全登出管理員模式。");
         }
 
         // 篩選分類
@@ -264,7 +334,7 @@
             renderCustomerProducts();
         }
 
-        // 渲染客戶端商品
+        // 渲染客戶端商品 (支援 0.5 起叫貨)
         function renderCustomerProducts() {
             const grid = document.getElementById('customer-product-grid');
             grid.innerHTML = '';
@@ -289,10 +359,10 @@
                         </div>
                         <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
                             <span class="text-xs text-slate-500">訂購數量 (${p.unit})</span>
-                            <div class="flex items-center space-x-2">
-                                <button onclick="updateCart(${p.id}, -1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center">-</button>
-                                <input type="number" id="qty-${p.id}" value="${qty}" onchange="setCartQty(${p.id}, this.value)" class="w-12 text-center text-sm font-bold border rounded-lg py-1 focus:outline-none">
-                                <button onclick="updateCart(${p.id}, 1)" class="w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold transition flex items-center justify-center">+</button>
+                            <div class="flex items-center space-x-1.5">
+                                <button onclick="updateCart(${p.id}, -0.5)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center">-</button>
+                                <input type="number" step="0.5" min="0" id="qty-${p.id}" value="${qty}" onchange="setCartQty(${p.id}, this.value)" class="w-14 text-center text-sm font-bold border rounded-lg py-1 focus:outline-none">
+                                <button onclick="updateCart(${p.id}, 0.5)" class="w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold transition flex items-center justify-center">+</button>
                             </div>
                         </div>
                     </div>
@@ -300,20 +370,26 @@
             });
         }
 
-        // 更新購物車數量
+        // 更新購物車數量 (以 0.5 為單位)
         function updateCart(id, delta) {
-            cart[id] = (cart[id] || 0) + delta;
-            if (cart[id] <= 0) delete cart[id];
+            const currentQty = cart[id] || 0;
+            const newQty = Math.max(0, parseFloat((currentQty + delta).toFixed(1)));
+            
+            if (newQty <= 0) {
+                delete cart[id];
+            } else {
+                cart[id] = newQty;
+            }
             renderCustomerProducts();
             renderCartSummary();
         }
 
         function setCartQty(id, val) {
-            const num = parseInt(val);
+            const num = parseFloat(val);
             if (isNaN(num) || num <= 0) {
                 delete cart[id];
             } else {
-                cart[id] = num;
+                cart[id] = parseFloat(num.toFixed(1));
             }
             renderCustomerProducts();
             renderCartSummary();
@@ -338,7 +414,7 @@
                 const p = products.find(item => item.id == id);
                 if (!p) return;
                 const qty = cart[id];
-                const subtotal = p.price * qty;
+                const subtotal = Math.round(p.price * qty);
                 total += subtotal;
                 count++;
 
@@ -396,7 +472,7 @@
             Object.keys(cart).forEach(id => {
                 const p = products.find(item => item.id == id);
                 const qty = cart[id];
-                const subtotal = p.price * qty;
+                const subtotal = Math.round(p.price * qty);
                 total += subtotal;
                 orderText += `• ${p.name} x ${qty} ${p.unit} ($${subtotal})\n`;
             });
@@ -494,7 +570,7 @@
             document.getElementById('product-modal').classList.add('hidden');
         }
 
-        // 儲存品項（新增或修改）
+        // 儲存品項
         function saveProduct() {
             const id = document.getElementById('edit-id').value;
             const name = document.getElementById('input-name').value.trim();
@@ -508,7 +584,6 @@
             }
 
             if (id) {
-                // 修改
                 const p = products.find(item => item.id == id);
                 if (p) {
                     p.name = name;
@@ -517,7 +592,6 @@
                     p.price = price;
                 }
             } else {
-                // 新增
                 const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
                 products.push({ id: newId, name, category, unit, price, status: 'active' });
             }
