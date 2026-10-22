@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>四季豐果菜 - 餐廳專用下單與時價管理系統</title>
+    <!-- 引入 Tailwind CSS 確保排版美觀 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+
+    <!-- 頂部導覽列 -->
+    <header class="bg-emerald-700 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-carrot text-2xl text-amber-300"></i>
+                <h1 class="text-xl font-bold tracking-wider">四季豐果菜 <span class="text-xs bg-emerald-600 px-2 py-0.5 rounded text-emerald-100">餐廳專用下單</span></h1>
+            </div>
+            <!-- 模式切換按鈕 -->
+            <div class="flex bg-emerald-800 p-1 rounded-lg">
+                <button onclick="switchMode('customer')" id="btn-customer" class="px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow">
+                    <i class="fa-solid fa-store mr-1"></i> 餐廳客戶端
+                </button>
+                <button onclick="switchMode('admin')" id="btn-admin" class="px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white">
+                    <i class="fa-solid fa-lock mr-1"></i> 管理員模式
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+
+        <!-- ================= 餐廳客戶端介面 ================= -->
+        <div id="view-customer" class="space-y-6">
+            <!-- 公告列 -->
+            <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg shadow-sm flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fa-solid fa-bullhorn text-amber-600 text-xl"></i>
+                    <div>
+                        <p class="text-sm font-bold text-amber-800">四季豐果菜 - 今日市場時價已更新！</p>
+                        <p class="text-xs text-amber-700">每日凌晨同步最新蔬果行情，支援整件、斤兩、包等多樣化規格下單。</p>
+                    </div>
+                </div>
+                <button onclick="copyDailyQuote()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-2 rounded-lg font-medium transition shadow flex items-center space-x-1">
+                    <i class="fa-solid fa-copy"></i>
+                    <span>複製今日價目表</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左側：商品目錄 -->
+                <div class="lg:col-span-2 space-y-4">
+                    <div class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                        <h2 class="font-bold text-lg text-slate-700 flex items-center">
+                            <i class="fa-solid fa-basket-shopping text-emerald-600 mr-2"></i> 鮮蔬品項清單
+                        </h2>
+                        <!-- 分類篩選 -->
+                        <div id="category-filters" class="flex flex-wrap gap-1">
+                            <button onclick="filterCategory('all')" class="cat-btn active text-xs px-3 py-1 rounded-full bg-emerald-600 text-white transition">全部</button>
+                            <button onclick="filterCategory('葉菜類')" class="cat-btn text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition">葉菜類</button>
+                            <button onclick="filterCategory('根莖類')" class="cat-btn text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition">根莖類</button>
+                            <button onclick="filterCategory('辛香料')" class="cat-btn text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition">辛香料</button>
+                            <button onclick="filterCategory('瓜果菇類')" class="cat-btn text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition">瓜果菇類</button>
+                        </div>
+                    </div>
+
+                    <!-- 菜品列表格子 -->
+                    <div id="customer-product-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- 動態生成 -->
+                    </div>
+                </div>
+
+                <!-- 右側：購物車與送單 -->
+                <div class="space-y-4">
+                    <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-100 sticky top-20">
+                        <h2 class="font-bold text-lg text-slate-700 mb-4 flex items-center justify-between">
+                            <span><i class="fa-solid fa-cart-shopping text-emerald-600 mr-2"></i> 採購清單</span>
+                            <span id="cart-count" class="text-xs bg-emerald-100 text-emerald-800 px-2 py-1 rounded-full">0 項</span>
+                        </h2>
+
+                        <!-- 餐廳基本資料 -->
+                        <div class="space-y-3 mb-4 border-b pb-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-600 mb-1">餐廳 / 營業所名稱</label>
+                                <input type="text" id="restaurantName" placeholder="例：鼎鮮小館" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">預計配送日期</label>
+                                    <input type="date" id="deliveryDate" class="w-full text-sm border border-slate-300 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">聯絡電話</label>
+                                    <input type="text" id="restaurantPhone" placeholder="0912-345678" class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 購物車品項明細 -->
+                        <div id="cart-items" class="space-y-2 max-h-60 overflow-y-auto mb-4 text-sm divide-y">
+                            <p class="text-slate-400 text-center py-6 text-xs">購物車目前是空的，請從左側選購蔬果</p>
+                        </div>
+
+                        <!-- 總金額 -->
+                        <div class="border-t pt-3 mb-4 flex justify-between items-center">
+                            <span class="font-bold text-slate-700">預估總金額：</span>
+                            <span id="cart-total" class="text-xl font-bold text-emerald-700">NT$ 0</span>
+                        </div>
+
+                        <!-- LINE 送出按鈕 -->
+                        <button onclick="sendOrderToLine()" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-3 px-4 rounded-xl shadow transition flex items-center justify-center space-x-2">
+                            <i class="fa-brands fa-line text-xl"></i>
+                            <span>透過 LINE 一鍵發送訂單</span>
+                        </button>
+                        <p class="text-[10px] text-slate-400 text-center mt-2">點擊後將自動排版訂單文字並開啟 LINE 傳送給四季豐果菜</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 果菜行管理員端介面 ================= -->
+        <div id="view-admin" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-xl font-bold text-slate-800"><i class="fa-solid fa-sliders text-emerald-600 mr-2"></i> 四季豐果菜 - 每日時價與品項管理</h2>
+                    <p class="text-xs text-slate-500 mt-1">在此修改的時價將會即時同步至餐廳客戶端頁面。</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="openAddModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition shadow flex items-center space-x-1">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>新增蔬果品項</span>
+                    </button>
+                    <button onclick="resetDefaultData()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm px-3 py-2 rounded-lg font-medium transition">
+                        重設預設資料
+                    </button>
+                </div>
+            </div>
+
+            <!-- 後台管理表格 -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-600 text-xs uppercase tracking-wider">
+                                <th class="p-3">品名</th>
+                                <th class="p-3">分類</th>
+                                <th class="p-3">單位</th>
+                                <th class="p-3">今日時價 (NT$)</th>
+                                <th class="p-3">狀態</th>
+                                <th class="p-3 text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-product-table" class="divide-y divide-slate-100 text-sm">
+                            <!-- 動態生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 新增 / 編輯彈窗 -->
+    <div id="product-modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 id="modal-title" class="font-bold text-lg text-slate-800">新增蔬果品項</h3>
+            <input type="hidden" id="edit-id">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">品名</label>
+                    <input type="text" id="input-name" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="例：有機翠玉白菜">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">分類</label>
+                        <select id="input-category" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="葉菜類">葉菜類</option>
+                            <option value="根莖類">根莖類</option>
+                            <option value="辛香料">辛香料</option>
+                            <option value="瓜果菇類">瓜果菇類</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">計價單位</label>
+                        <!-- 改為下拉選單：支援整件/整捆、台斤、包 -->
+                        <select id="input-unit" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="台斤">台斤 (斤兩)</option>
+                            <option value="整件">整件 (箱裝)</option>
+                            <option value="整捆">整捆</option>
+                            <option value="包">包</option>
+                            <option value="顆">顆</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">今日時價 (元)</label>
+                    <input type="number" id="input-price" class="w-full text-sm border rounded-lg px-3 py-2 focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="例：45">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeModal()" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">取消</button>
+                <button onclick="saveProduct()" class="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 shadow">儲存品項</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯控制 -->
+    <script>
+        // 預設蔬果資料庫 (包含不同單位範例)
+        const defaultProducts = [
+            { id: 1, name: "高麗菜 (初秋)", category: "葉菜類", unit: "整件", price: 650, status: "active" },
+            { id: 2, name: "台灣翠玉白菜", category: "葉菜類", unit: "台斤", price: 28, status: "active" },
+            { id: 3, name: "本島產土蔥", category: "辛香料", unit: "整捆", price: 1200, status: "active" },
+            { id: 4, name: "老薑 (台灣產)", category: "辛香料", unit: "台斤", price: 90, status: "active" },
+            { id: 5, name: "履歷牛番茄", category: "瓜果菇類", unit: "台斤", price: 55, status: "active" },
+            { id: 6, name: "新鮮特選馬鈴薯", category: "根莖類", unit: "台斤", price: 32, status: "active" },
+            { id: 7, name: "雪白鴻禧菇", category: "瓜果菇類", unit: "包", price: 18, status: "active" }
+        ];
+
+        // 讀取或初始化 LocalStorage
+        let products = JSON.parse(localStorage.getItem('four_seasons_veg_products')) || defaultProducts;
+        let cart = {};
+        let currentFilter = 'all';
+
+        // 初始化日期預設為明天
+        document.addEventListener('DOMContentLoaded', () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('deliveryDate').valueAsDate = tomorrow;
+            renderCustomerProducts();
+            renderAdminTable();
+        });
+
+        // 切換介面模式
+        function switchMode(mode) {
+            const custView = document.getElementById('view-customer');
+            const adminView = document.getElementById('view-admin');
+            const btnCust = document.getElementById('btn-customer');
+            const isAdmin = document.getElementById('btn-admin');
+
+            if (mode === 'customer') {
+                custView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                btnCust.className = "px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow";
+                isAdmin.className = "px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white";
+                renderCustomerProducts();
+            } else {
+                custView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                isAdmin.className = "px-3 py-1.5 rounded-md text-sm font-medium transition bg-white text-emerald-800 shadow";
+                btnCust.className = "px-3 py-1.5 rounded-md text-sm font-medium transition text-emerald-100 hover:text-white";
+                renderAdminTable();
+            }
+        }
+
+        // 篩選分類
+        function filterCategory(cat) {
+            currentFilter = cat;
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = "cat-btn text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition";
+            });
+            event.target.className = "cat-btn text-xs px-3 py-1 rounded-full bg-emerald-600 text-white transition";
+            renderCustomerProducts();
+        }
+
+        // 渲染客戶端商品
+        function renderCustomerProducts() {
+            const grid = document.getElementById('customer-product-grid');
+            grid.innerHTML = '';
+
+            const filtered = products.filter(p => p.status === 'active' && (currentFilter === 'all' || p.category === currentFilter));
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<p class="col-span-2 text-center text-slate-400 py-8 text-sm">此分類目前無上架品項</p>`;
+                return;
+            }
+
+            filtered.forEach(p => {
+                const qty = cart[p.id] || 0;
+                grid.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-medium">${p.category}</span>
+                                <span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">NT$ ${p.price} / ${p.unit}</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base mb-1">${p.name}</h3>
+                        </div>
+                        <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
+                            <span class="text-xs text-slate-500">訂購數量 (${p.unit})</span>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="updateCart(${p.id}, -1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition flex items-center justify-center">-</button>
+                                <input type="number" id="qty-${p.id}" value="${qty}" onchange="setCartQty(${p.id}, this.value)" class="w-12 text-center text-sm font-bold border rounded-lg py-1 focus:outline-none">
+                                <button onclick="updateCart(${p.id}, 1)" class="w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold transition flex items-center justify-center">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 更新購物車數量
+        function updateCart(id, delta) {
+            cart[id] = (cart[id] || 0) + delta;
+            if (cart[id] <= 0) delete cart[id];
+            renderCustomerProducts();
+            renderCartSummary();
+        }
+
+        function setCartQty(id, val) {
+            const num = parseInt(val);
+            if (isNaN(num) || num <= 0) {
+                delete cart[id];
+            } else {
+                cart[id] = num;
+            }
+            renderCustomerProducts();
+            renderCartSummary();
+        }
+
+        // 渲染購物車側邊欄
+        function renderCartSummary() {
+            const container = document.getElementById('cart-items');
+            container.innerHTML = '';
+            let total = 0;
+            let count = 0;
+
+            const keys = Object.keys(cart);
+            if (keys.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-6 text-xs">購物車目前是空的，請從左側選購蔬果</p>`;
+                document.getElementById('cart-total').innerText = `NT$ 0`;
+                document.getElementById('cart-count').innerText = `0 項`;
+                return;
+            }
+
+            keys.forEach(id => {
+                const p = products.find(item => item.id == id);
+                if (!p) return;
+                const qty = cart[id];
+                const subtotal = p.price * qty;
+                total += subtotal;
+                count++;
+
+                container.innerHTML += `
+                    <div class="flex justify-between items-center py-2 text-xs">
+                        <div>
+                            <span class="font-bold text-slate-800">${p.name}</span>
+                            <div class="text-slate-400">NT$ ${p.price} × ${qty} ${p.unit}</div>
+                        </div>
+                        <span class="font-bold text-emerald-700">NT$ ${subtotal}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('cart-total').innerText = `NT$ ${total}`;
+            document.getElementById('cart-count').innerText = `${count} 項`;
+        }
+
+        // 複製今日價目表
+        function copyDailyQuote() {
+            let text = `【四季豐果菜 - 今日時價報價單】\n📅 日期：${new Date().toLocaleDateString()}\n--------------------\n`;
+            products.filter(p => p.status === 'active').forEach(p => {
+                text += `▪ ${p.name}：$${p.price}/${p.unit}\n`;
+            });
+            text += `--------------------\n歡迎餐廳夥伴直接截圖或回覆下單！`;
+            navigator.clipboard.writeText(text);
+            alert("已成功複製四季豐果菜今日時價報價單，可直接貼到 LINE 群組！");
+        }
+
+        // LINE 一鍵送出訂單
+        function sendOrderToLine() {
+            const restName = document.getElementById('restaurantName').value.trim();
+            const phone = document.getElementById('restaurantPhone').value.trim();
+            const date = document.getElementById('deliveryDate').value;
+
+            if (!restName) {
+                alert("請填寫餐廳 / 營業所名稱！");
+                document.getElementById('restaurantName').focus();
+                return;
+            }
+            if (Object.keys(cart).length === 0) {
+                alert("購物車內沒有品項，請先選購蔬菜！");
+                return;
+            }
+
+            let orderText = `🛒 【四季豐果菜 - 餐廳補貨訂單】\n`;
+            orderText += `--------------------\n`;
+            orderText += `🏪 餐廳名稱：${restName}\n`;
+            orderText += `📞 聯絡電話：${phone || '未填'}\n`;
+            orderText += `🚚 配送日期：${date}\n`;
+            orderText += `--------------------\n`;
+            orderText += `品項明細：\n`;
+
+            let total = 0;
+            Object.keys(cart).forEach(id => {
+                const p = products.find(item => item.id == id);
+                const qty = cart[id];
+                const subtotal = p.price * qty;
+                total += subtotal;
+                orderText += `• ${p.name} x ${qty} ${p.unit} ($${subtotal})\n`;
+            });
+
+            orderText += `--------------------\n`;
+            orderText += `💰 預估總計：NT$ ${total}\n`;
+            orderText += `請幫忙確認訂單與出貨，謝謝！`;
+
+            // 複製到剪貼簿並開啟 LINE 協議
+            navigator.clipboard.writeText(orderText);
+            alert(`訂單已格式化完成並複製！\n即將為您打開 LINE，請直接在對話框貼上送給四季豐果菜即可。`);
+            window.location.href = `https://line.me/R/msg/text/?` + encodeURIComponent(orderText);
+        }
+
+        // 渲染後台管理表格
+        function renderAdminTable() {
+            const tbody = document.getElementById('admin-product-table');
+            tbody.innerHTML = '';
+
+            products.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                        <td class="p-3"><span class="bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded">${p.category}</span></td>
+                        <td class="p-3 text-slate-600">${p.unit}</td>
+                        <td class="p-3 font-bold text-emerald-700">NT$ <input type="number" value="${p.price}" onchange="quickUpdatePrice(${p.id}, this.value)" class="w-20 border rounded px-2 py-1 text-sm font-bold text-emerald-700"></td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 text-xs rounded-full ${p.status === 'active' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
+                                ${p.status === 'active' ? '上架中' : '已下架'}
+                            </span>
+                        </td>
+                        <td class="p-3 text-right space-x-2">
+                            <button onclick="toggleStatus(${p.id})" class="text-xs text-slate-600 hover:text-emerald-700 font-medium">${p.status === 'active' ? '下架' : '上架'}</button>
+                            <button onclick="openEditModal(${p.id})" class="text-xs text-emerald-600 hover:text-emerald-800 font-medium">編輯</button>
+                            <button onclick="deleteProduct(${p.id})" class="text-xs text-red-500 hover:text-red-700 font-medium">刪除</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 後台快速改價
+        function quickUpdatePrice(id, newPrice) {
+            const p = products.find(item => item.id == id);
+            if (p) {
+                p.price = parseFloat(newPrice) || 0;
+                localStorage.setItem('four_seasons_veg_products', JSON.stringify(products));
+            }
+        }
+
+        // 上下架切換
+        function toggleStatus(id) {
+            const p = products.find(item => item.id == id);
+            if (p) {
+                p.status = p.status === 'active' ? 'inactive' : 'active';
+                localStorage.setItem('four_seasons_veg_products', JSON.stringify(products));
+                renderAdminTable();
+            }
+        }
+
+        // 刪除品項
+        function deleteProduct(id) {
+            if (confirm("確定要刪除這個品項嗎？")) {
+                products = products.filter(item => item.id != id);
+                localStorage.setItem('four_seasons_veg_products', JSON.stringify(products));
+                renderAdminTable();
+            }
+        }
+
+        // 開啟新增彈窗
+        function openAddModal() {
+            document.getElementById('modal-title').innerText = "新增蔬果品項";
+            document.getElementById('edit-id').value = "";
+            document.getElementById('input-name').value = "";
+            document.getElementById('input-unit').value = "台斤";
+            document.getElementById('input-price').value = "";
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        // 開啟編輯彈窗
+        function openEditModal(id) {
+            const p = products.find(item => item.id == id);
+            if (p) {
+                document.getElementById('modal-title').innerText = "編輯蔬果品項";
+                document.getElementById('edit-id').value = p.id;
+                document.getElementById('input-name').value = p.name;
+                document.getElementById('input-category').value = p.category;
+                document.getElementById('input-unit').value = p.unit;
+                document.getElementById('input-price').value = p.price;
+                document.getElementById('product-modal').classList.remove('hidden');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        // 儲存品項（新增或修改）
+        function saveProduct() {
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('input-name').value.trim();
+            const category = document.getElementById('input-category').value;
+            const unit = document.getElementById('input-unit').value;
+            const price = parseFloat(document.getElementById('input-price').value);
+
+            if (!name || isNaN(price)) {
+                alert("請完整填寫品名與價格！");
+                return;
+            }
+
+            if (id) {
+                // 修改
+                const p = products.find(item => item.id == id);
+                if (p) {
+                    p.name = name;
+                    p.category = category;
+                    p.unit = unit;
+                    p.price = price;
+                }
+            } else {
+                // 新增
+                const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+                products.push({ id: newId, name, category, unit, price, status: 'active' });
+            }
+
+            localStorage.setItem('four_seasons_veg_products', JSON.stringify(products));
+            closeModal();
+            renderAdminTable();
+        }
+
+        // 重設預設資料
+        function resetDefaultData() {
+            if (confirm("確定要重設所有資料為預設範例嗎？")) {
+                products = JSON.parse(JSON.stringify(defaultProducts));
+                localStorage.setItem('four_seasons_veg_products', JSON.stringify(products));
+                renderAdminTable();
+                alert("已重設完成！");
+            }
+        }
+    </script>
+</body>
+</html>
